@@ -1,6 +1,7 @@
 import subprocess #for subprocess handling, mainly to play sounds
 import re #for regular expression handling
 from evdev import InputDevice, list_devices, categorize, ecodes
+import time
 
 def letter_sound(letter):
 	return {
@@ -73,17 +74,18 @@ def letter_image(letter):
 	}.get(letter, "null.jpg")
 
 def sing(letter):
-	subprocess.Popen(["mplayer", "sound/"+letter_sound(letter)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
+	singer= subprocess.Popen(["mplayer", "sound/"+letter_sound(letter)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	return singer
  
 def show(letter):
-	viewer = subprocess.Popen(['eog', "image/"+letter_image(letter)])
+	viewer = subprocess.Popen(['eog', "image/"+letter_image(letter), "-fg"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	return viewer
 
 def main():
 	devices = [InputDevice(fn) for fn in list_devices()]
-	viewer = subprocess.Popen(['eog', "image/null.jpg"], stdout = subprocess.PIPE, stderr=subprocess.PIPE)
-
+	viewer = subprocess.Popen(['eog', "image/alphabet.jpg", "-fg"], stdout = subprocess.PIPE, stderr=subprocess.PIPE)
+	singer = subprocess.Popen(['mplayer', "image/null.mp3"], stdout = subprocess.PIPE, stderr=subprocess.PIPE)
+	
 	for dev in devices :
 		if re.search("KB", dev.name) : #Put something that can define your keyboard name here
 			print("Using input device at : "+dev.fn)
@@ -92,13 +94,23 @@ def main():
 							 #which is presented as another device with the same name.
 	for event in keyb.read_loop():
 		if event.type == ecodes.EV_KEY and event.value == 0x1 :
-			if event.code == ecodes.KEY_ESC:
+			if event.code == ecodes.KEY_ESC: #Quit
+				singer.terminate()
+				singer.kill()
 				subprocess.Popen(["mplayer", "sound/goodbye.mp3"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+				time.sleep(2)
+				singer.terminate()
+				singer.kill()
+				viewer.terminate()
+				viewer.kill()
 				quit()
+			#Continue program
 			viewer.terminate()
 			viewer.kill()
+			singer.terminate()
+			singer.kill()
 			#print(categorize(event)) #Uncomment if you need to debug
-			sing(event.code)
+			singer = sing(event.code)
 			viewer = show(event.code)
 
 if __name__ == "__main__":
