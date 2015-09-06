@@ -1,7 +1,5 @@
 import subprocess #for subprocess handling, mainly to play sounds
 import re #for regular expression handling
-import psutil #for file handling
-from PIL import Image #to display images
 from evdev import InputDevice, list_devices, categorize, ecodes
 
 def letter_sound(letter):
@@ -77,16 +75,8 @@ def letter_image(letter):
 def sing(letter):
 	subprocess.Popen(["mplayer", "sound/"+letter_sound(letter)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-def show(letter):
-	#Kill provious display first
-	for proc in psutil.process_iter():
-		if proc.name() == "eog":
-			proc.kill()
-	with open("image/"+letter_image(letter), 'rb') as f:
-		image = Image.open(f)
-		image.show()
  
-def show_new(letter):
+def show(letter):
 	viewer = subprocess.Popen(['eog', "image/"+letter_image(letter)])
 	return viewer
 
@@ -98,8 +88,8 @@ def main():
 		if re.search("KB", dev.name) : #Put something that can define your keyboard name here
 			print("Using input device at : "+dev.fn)
 			keyb = dev#break #Normally you need to break, 
-			#but I comment it as my keyboard contains a section for media-player
-			#which is presented as another device with the same name.
+							 #but I comment it as my keyboard contains a section for media-player
+							 #which is presented as another device with the same name.
 	for event in keyb.read_loop():
 		if event.type == ecodes.EV_KEY and event.value == 0x1 :
 			if event.code == ecodes.KEY_ESC:
@@ -109,7 +99,7 @@ def main():
 			viewer.kill()
 			#print(categorize(event)) #Uncomment if you need to debug
 			sing(event.code)
-			viewer = show_new(event.code)
+			viewer = show(event.code)
 
 if __name__ == "__main__":
 	main()
